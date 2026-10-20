@@ -7,7 +7,7 @@
 // - Failed attempts are rate-limited per IP and overall.
 // - The session cookie holds a random token; D1 stores only its SHA-256.
 
-import { and, eq, gt, lt, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { z } from 'zod';
@@ -17,7 +17,7 @@ import { MIN_PASSWORD_LENGTH, hashPassword, timingSafeEqual, verifyPassword } fr
 
 const SESSION_DAYS = 30;
 const RENEW_WHEN_DAYS_LEFT = 15;
-const IP_FAILURES = { max: 5, windowMs: 15 * 60_000 };
+const IP_FAILURES = { max: 10, windowMs: 15 * 60_000 };
 const ALL_FAILURES = { max: 30, windowMs: 60 * 60_000 };
 // Verified against when the email is unknown, so timing doesn't reveal which emails exist.
 const DUMMY_HASH = 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
@@ -44,6 +44,11 @@ const passwordKey = (email: string) => `password:${email}`;
 
 async function getPasswordHash(db: DB, email: string) {
   return (await db.select().from(settings).where(eq(settings.key, passwordKey(email))).get())?.value ?? null;
+}
+
+async function anyPassword(db: DB, env: Env) {
+  for (const email of allowedEmails(env)) if (await getPasswordHash(db, email)) return true;
+  return false;
 }
 
 async function setPassword(db: DB, email: string, password: string) {
@@ -129,6 +134,14 @@ async function json<T extends z.ZodType>(c: Context, schema: T) {
 const tooShort = (p: string) => p.length < MIN_PASSWORD_LENGTH;
 
 export const authRoutes = new Hono<AppEnv>()
+  // Whether any allowed account has a password yet, so the sign-in page can point to setup.
+  .get('/status', async (c) => {
+    const keys = allowedEmails(c.env).map(passwordKey);
+    const row = keys.length
+      ? await c.var.db.select({ n: sql<number>`count(*)` }).from(settings).where(inArray(settings.key, keys)).get()
+      : null;
+    return c.json({ needsSetup: !row?.n });
+  })
   .post('/login', async (c) => {
     const db = c.var.db;
     const ip = clientIp(c);
@@ -136,6 +149,7 @@ export const authRoutes = new Hono<AppEnv>()
     if (limited) return c.json({ error: limited }, 429);
     const input = await json(c, loginInput);
     if (!input) return c.json({ error: 'Enter your email and password.' }, 400);
+    if (!(await anyPassword(db, c.env))) return c.json({ error: 'No password has been set yet. Use the setup link.' }, 409);
     const allowed = allowedEmails(c.env).includes(input.email);
     const hash = allowed ? await getPasswordHash(db, input.email) : null;
     const ok = (await verifyPassword(input.password, hash ?? DUMMY_HASH)) && allowed && !!hash;

@@ -33,7 +33,7 @@ export default defineConfig({
         // Only the app shell is cached; financial data is never stored by the service worker.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/auth\//, /^\/setup/],
         runtimeCaching: [
           { urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'fonts' } },
         ],

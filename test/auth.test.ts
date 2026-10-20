@@ -52,6 +52,15 @@ describe('email sign-in', () => {
     expect((await anon(env, '/auth/login', { email: 'other@example.com', password: PASSWORD })).status).toBe(401);
   });
 
+  it('says when no password exists yet instead of counting failures', async () => {
+    const { env } = await setup();
+    const status = await app.request('http://localhost/auth/status', {}, env);
+    expect(await status.json()).toEqual({ needsSetup: true });
+    for (let i = 0; i < 12; i++) expect((await anon(env, '/auth/login', { email: 'me@example.com', password: 'anything at all' })).status).toBe(409);
+    expect((await anon(env, '/auth/setup', { token: TOKEN, email: 'me@example.com', password: PASSWORD })).status).toBe(200);
+    expect(await (await app.request('http://localhost/auth/status', {}, env)).json()).toEqual({ needsSetup: false });
+  });
+
   it('cannot set up without a configured token', async () => {
     const { env } = await setup({ SETUP_TOKEN: undefined });
     expect((await anon(env, '/auth/setup', { token: TOKEN, email: 'me@example.com', password: PASSWORD })).status).toBe(403);
@@ -60,7 +69,7 @@ describe('email sign-in', () => {
   it('locks an IP out after repeated failures', async () => {
     const { env } = await setup();
     await anon(env, '/auth/setup', { token: TOKEN, email: 'me@example.com', password: PASSWORD });
-    for (let i = 0; i < 5; i++) await anon(env, '/auth/login', { email: 'me@example.com', password: `guess ${i}` }, '9.9.9.9');
+    for (let i = 0; i < 10; i++) await anon(env, '/auth/login', { email: 'me@example.com', password: `guess ${i}` }, '9.9.9.9');
     expect((await anon(env, '/auth/login', { email: 'me@example.com', password: PASSWORD }, '9.9.9.9')).status).toBe(429);
     expect((await anon(env, '/auth/login', { email: 'me@example.com', password: PASSWORD }, '8.8.8.8')).status).toBe(200);
   });

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { post } from '../api';
+import { useQuery } from '@tanstack/react-query';
+import { get, post } from '../api';
 
 const WORD = 'budgeting';
 const GLYPHS = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -61,6 +62,7 @@ function AuthPage({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function SignIn() {
+  const status = useQuery({ queryKey: ['auth-status'], queryFn: () => get<{ needsSetup: boolean }>('/auth/status') });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -79,12 +81,16 @@ export function SignIn() {
   };
   return (
     <AuthPage label="Sign in">
+      {status.data?.needsSetup ? (
+        <p className="auth-form muted">No password has been set yet. Open the one-time setup link to create it.</p>
+      ) : (
       <form className="auth-form" onSubmit={submit}>
         <label className="field"><span>Email</span><input className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus /></label>
         <label className="field"><span>Password</span><input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</button>
       </form>
+      )}
     </AuthPage>
   );
 }
