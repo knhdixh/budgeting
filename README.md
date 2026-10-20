@@ -55,6 +55,12 @@ npm test                             # unit + API tests (in-memory D1 over node:
 
 This app auto-deploys from `main` via Workers Builds.
 
+## Restore
+
+- **Last 7 days:** `npx wrangler d1 time-travel restore budgeting --timestamp <ISO time>`
+- **Older:** check out a nightly `budgeting.sql` from the backup repo and load it into a new database with `npx wrangler d1 execute <db> --remote --file budgeting.sql`.
+- **Anything, any time:** Settings → Export everything (JSON).
+
 ## Limitations
 
 - Built for one person; there's no sharing or multi-user budgets.
