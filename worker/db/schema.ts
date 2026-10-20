@@ -6,7 +6,8 @@ const createdAt = () => integer('created_at').notNull().$defaultFn(() => Date.no
 
 export const users = sqliteTable('users', {
   id: id(),
-  googleSub: text('google_sub').notNull().unique(),
+  // Stable identity of the sign-in method, e.g. 'email:me@example.com'.
+  subject: text('subject').notNull().unique(),
   email: text('email').notNull(),
   name: text('name'),
   picture: text('picture'),
@@ -21,6 +22,14 @@ export const sessions = sqliteTable('sessions', {
   createdAt: createdAt(),
   userAgent: text('user_agent'),
 });
+
+// Failed and successful sign-ins, for rate limiting.
+export const loginAttempts = sqliteTable('login_attempts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ip: text('ip').notNull(),
+  at: integer('at').notNull(),
+  ok: integer('ok', { mode: 'boolean' }).notNull(),
+}, (t) => [index('login_attempts_ip_at').on(t.ip, t.at), index('login_attempts_at').on(t.at)]);
 
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),

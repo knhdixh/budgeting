@@ -2,7 +2,7 @@
 
 A private personal finance app: envelope budgeting, expense tracking, multi-currency accounts and reports, in one quiet black-on-white interface.
 
-**Live:** https://budgeting.knhdixh.com (private, single Google account)
+**Live:** https://budgeting.knhdixh.com (private, one allowed email)
 
 ![Budget view with demo data](docs/screenshot.png)
 
@@ -27,7 +27,7 @@ One Cloudflare Worker serves both the React app (static assets) and a JSON API (
 
 - **Money** is stored as integer cents. Every transaction also stores its amount in the base currency at that day's rate, so budget maths never needs live rates.
 - **Budget maths** lives in a pure module, [`shared/budget.ts`](shared/budget.ts), with unit tests. *Ready to assign* is income through the month, minus everything assigned, minus overspending from earlier months. Uncategorized money counts as income, so ready to assign plus all category balances always equals cash in budget accounts.
-- **Sign-in** is Google OAuth (authorization code + PKCE, using [arctic](https://arcticjs.dev)). Only emails listed in `ALLOWED_EMAILS` get in, and only when Google says the email is verified. The first sign-in pins the Google account ID. Sessions are random tokens in an HttpOnly cookie; D1 stores only their SHA-256.
+- **Sign-in** is email + password, only for emails in the `ALLOWED_EMAILS` secret. Passwords are hashed with PBKDF2-SHA256 and a random salt. They are set or reset through a one-time link, `/setup#<SETUP_TOKEN>`; the token is a Worker secret and stops working once used. Failed sign-ins are rate-limited per IP and overall. Sessions are random tokens in an HttpOnly cookie; D1 stores only their SHA-256.
 - **Hardening:** writes are refused unless the `Origin` matches; strict CSP, HSTS and `frame-ancestors 'none'`; `*.workers.dev` redirects to the canonical host.
 - **Daily cron** (04:15 UTC) refreshes exchange rates and posts due scheduled transactions.
 - **Backups:** D1 Time Travel gives point-in-time restore for 7 days. A GitHub Action in a separate private repo exports the database as SQL every night and commits it, which keeps a full version history.
@@ -49,9 +49,9 @@ npm test                             # unit + API tests (in-memory D1 over node:
 ## Deploy your own
 
 1. `npx wrangler d1 create budgeting` and put the id in `wrangler.jsonc`. Set `CANONICAL_HOST` and change or remove `routes` for your own domain.
-2. Create a Google OAuth client (Web application) with redirect URI `https://<host>/auth/google/callback`.
-3. Set the secrets `ALLOWED_EMAILS` (comma-separated), `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` with `npx wrangler secret put <NAME>`.
-4. `npm run deploy` applies migrations, builds and deploys.
+2. Set the secrets `ALLOWED_EMAILS` (comma-separated) and `SETUP_TOKEN` (a long random string, e.g. `openssl rand -base64 32`) with `npx wrangler secret put <NAME>`.
+3. `npm run deploy` applies migrations, builds and deploys.
+4. Open `https://<host>/setup#<SETUP_TOKEN>` and choose your password. To reset a forgotten password later, set a new `SETUP_TOKEN` and open the link again.
 
 This app auto-deploys from `main` via Workers Builds.
 

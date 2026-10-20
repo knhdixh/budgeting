@@ -6,8 +6,8 @@ export interface Env {
   ASSETS: Fetcher;
   CANONICAL_HOST: string;
   ALLOWED_EMAILS: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
+  /** One-time link secret for setting or resetting a password: /setup#<token>. */
+  SETUP_TOKEN?: string;
   /** Local development only (.dev.vars): enables /auth/dev. */
   DEV_LOGIN?: string;
 }

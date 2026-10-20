@@ -323,7 +323,12 @@ function Data() {
 }
 
 function Account() {
+  const toast = useToast();
   const me = useQuery({ queryKey: ['me'], queryFn: () => get<{ email: string; name: string | null }>('/api/me') });
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [error, setError] = useState('');
+  const change = useWrite(() => post('/auth/password', { current, next }));
   const signOut = async () => {
     await post('/auth/logout').catch(() => undefined);
     location.href = '/';
@@ -334,6 +339,19 @@ function Account() {
       <ul className="rows">
         <li><div className="row"><span className="name">{me.data?.email ?? '—'}</span><button className="link muted" onClick={signOut}>Sign out</button></div></li>
       </ul>
+      <form style={{ marginTop: 28 }} onSubmit={(e) => {
+        e.preventDefault();
+        setError('');
+        change.mutate(undefined, { onSuccess: () => { toast('Password changed. Other devices were signed out.'); setCurrent(''); setNext(''); }, onError: (err) => setError(err.message) });
+      }}>
+        <input type="email" autoComplete="username" value={me.data?.email ?? ''} readOnly hidden />
+        <div className="grid2">
+          <label className="field"><span>Current password</span><input className="input" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required /></label>
+          <label className="field"><span>New password</span><input className="input" type="password" autoComplete="new-password" minLength={12} value={next} onChange={(e) => setNext(e.target.value)} required /></label>
+        </div>
+        {error && <p className="error">{error}</p>}
+        <button className="link" disabled={change.isPending}>Change password</button>
+      </form>
     </section>
   );
 }

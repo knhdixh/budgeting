@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { post } from '../api';
 
 const WORD = 'budgeting';
 const GLYPHS = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -34,9 +35,7 @@ function Display() {
   );
 }
 
-export function SignIn() {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const error = new URLSearchParams(location.search).get('error');
+function useFluid() {
   useEffect(() => {
     // The water trail script finds #fluid when it runs; load it once per page.
     if (document.querySelector('script[src="/fluid.js"]')) return;
@@ -44,23 +43,84 @@ export function SignIn() {
     s.src = '/fluid.js';
     document.body.appendChild(s);
   }, []);
+}
+
+function AuthPage({ label, children }: { label: string; children: ReactNode }) {
+  useFluid();
   return (
     <>
-      <canvas id="fluid" ref={canvas} aria-hidden />
+      <canvas id="fluid" aria-hidden />
       <main className="signin">
         <Display />
-        <div className="meta"><span>Private</span><span>01</span></div>
-        <ul className="rows">
-          <li>
-            <a className="row" href="/auth/google">
-              <span className="name">Continue with Google</span>
-              <span className="detail">sign in<span className="arrow">→</span></span>
-            </a>
-          </li>
-        </ul>
-        {error && <p className="error">{error}</p>}
+        <div className="meta"><span>{label}</span><span>Private</span></div>
+        {children}
         <footer className="foot"><span>budgeting.knhdixh.com</span><span>{new Date().getFullYear()}</span></footer>
       </main>
     </>
+  );
+}
+
+export function SignIn() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await post('/auth/login', { email, password });
+      location.replace('/');
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+  return (
+    <AuthPage label="Sign in">
+      <form className="auth-form" onSubmit={submit}>
+        <label className="field"><span>Email</span><input className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus /></label>
+        <label className="field"><span>Password</span><input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+        {error && <p className="error">{error}</p>}
+        <button className="btn" disabled={busy}>{busy ? 'Signing in' : 'Sign in'}</button>
+      </form>
+    </AuthPage>
+  );
+}
+
+/** One-time password setup from a link with the token in the URL fragment (never sent to logs). */
+export function Setup() {
+  const token = location.hash.slice(1);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) { setError('The passwords don’t match.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      await post('/auth/setup', { token, email, password });
+      location.replace('/');
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+  return (
+    <AuthPage label="Set password">
+      {!token ? <p className="muted">This link is incomplete.</p> : (
+        <form className="auth-form" onSubmit={submit}>
+          <label className="field"><span>Email</span><input className="input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus /></label>
+          <label className="field"><span>New password · at least 12 characters</span><input className="input" type="password" autoComplete="new-password" minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+          <label className="field"><span>Repeat password</span><input className="input" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required /></label>
+          {error && <p className="error">{error}</p>}
+          <button className="btn" disabled={busy}>{busy ? 'Saving' : 'Set password'}</button>
+        </form>
+      )}
+    </AuthPage>
   );
 }

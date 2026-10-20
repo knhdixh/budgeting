@@ -8,6 +8,7 @@ export async function setup(overrides: Partial<Env> = {}) {
     CANONICAL_HOST: 'budgeting.knhdixh.com',
     ALLOWED_EMAILS: 'me@example.com',
     DEV_LOGIN: '1',
+    SETUP_TOKEN: 'setup-token-0123456789abcdef',
     ...overrides,
   } as Env;
   const login = await app.request('http://localhost/auth/dev', {}, env);

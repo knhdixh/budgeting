@@ -7,7 +7,7 @@ import { UIProvider } from './components/UI';
 import { AccountsPage } from './pages/Accounts';
 import { BudgetPage } from './pages/Budget';
 import { ScheduledPage } from './pages/Scheduled';
-import { SignIn } from './pages/SignIn';
+import { Setup, SignIn } from './pages/SignIn';
 import { TransactionsPage } from './pages/Transactions';
 
 // Charts are the heaviest dependency, so reports load on demand.
@@ -28,6 +28,7 @@ export function App() {
     return () => window.removeEventListener('signed-out', out);
   }, [qc]);
 
+  if (location.pathname === '/setup') return <Setup />;
   if (me.isLoading) return null;
   if (!me.data) return <SignIn />;
 

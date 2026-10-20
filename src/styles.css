@@ -306,6 +306,8 @@ dialog.sheet::backdrop { background: rgba(255, 255, 255, .78); backdrop-filter: 
 .cursor { display: inline-block; width: .055em; height: .78em; margin: 0 0 .06em .06em; background: var(--fg); opacity: 0; }
 .cursor.on { animation: blink 1.05s steps(1) infinite; }
 @keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+.auth-form { padding-top: 24px; max-width: 420px; animation: fade .8s ease .6s both; }
+.auth-form .btn { margin-top: 8px; }
 footer.foot { display: flex; justify-content: space-between; margin-top: 72px; color: var(--muted); font-size: 13px; animation: fade 1s ease 1.6s both; }
 
 /* ---------- charts ---------- */

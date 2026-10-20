@@ -1,5 +1,5 @@
 ALLOWED_EMAILS=you@example.com
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+# Any long random string; open http://localhost:8787/setup#<token> to set a password.
+SETUP_TOKEN=
 # Local only: enables /auth/dev for screenshots and tests.
 DEV_LOGIN=1
