@@ -1,0 +1,5 @@
+ALLOWED_EMAILS=you@example.com
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Local only: enables /auth/dev for screenshots and tests.
+DEV_LOGIN=1

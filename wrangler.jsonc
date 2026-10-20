@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "budgeting",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*"]
+  },
+  "routes": [{ "pattern": "budgeting.knhdixh.com", "custom_domain": true }],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  // Daily: fetch ECB rates and post due scheduled transactions.
+  "triggers": { "crons": ["15 4 * * *"] },
+  "vars": {
+    "CANONICAL_HOST": "budgeting.knhdixh.com"
+  },
+  // Secrets (wrangler secret put): ALLOWED_EMAILS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+  "d1_databases": [
+    { "binding": "DB", "database_name": "budgeting", "database_id": "983bcdc9-317c-410a-8112-5415fd61ca3b", "migrations_dir": "migrations" }
+  ]
+}
